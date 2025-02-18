@@ -1,0 +1,42 @@
+name: Update Catalog Index
+
+on:
+  push:
+    paths:
+      - 'catalog/**'
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Update index file
+        run: |
+          ./update-index.sh
+      
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet catalog/index; then
+            echo "No changes to index file"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Index file was updated"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Commit and push if changed
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add catalog/index
+          git commit -m "Update catalog index"
+          git push
+
